@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dark Chat 2026</title>
+    <style>
+        body { font-family: Tahoma, sans-serif; background-color: #121212; color: #e0e0e0; margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; }
+        header { background-color: #1f1f1f; padding: 15px; text-align: center; border-bottom: 1px solid #333; font-size: 1.2rem; font-weight: bold; color: #00dfc4; }
+        #auth-container, #chat-container { display: flex; flex-direction: column; padding: 20px; max-width: 400px; margin: auto; width: 100%; box-sizing: border-box; }
+        #chat-container { display: none; height: 100%; max-width: 800px; padding: 10px; }
+        input, button { padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #333; background: #1e1e1e; color: #fff; font-size: 1rem; }
+        button { background-color: #00dfc4; color: #121212; font-weight: bold; cursor: pointer; border: none; }
+        button:hover { background-color: #00bfa5; }
+        #messages { flex: 1; overflow-y: auto; background: #181818; padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #2c2c2c; display: flex; flex-direction: column; gap: 8px; }
+        .message { padding: 10px 14px; border-radius: 10px; max-width: 70%; word-break: break-word; line-height: 1.4; }
+        .my-message { background-color: #005c4b; align-self: flex-end; color: #fff; }
+        .other-message { background-color: #202c33; align-self: flex-start; color: #fff; }
+        .input-area { display: flex; gap: 10px; }
+        .input-area input { flex: 1; margin: 0; }
+    </style>
+</head>
+<body>
+
+    <header>Dark Chat 2026 🖤</header>
+
+    <!-- شاشة تسجيل الدخول -->
+    <div id="auth-container">
+        <h2>تسجيل الدخول / إنشاء حساب</h2>
+        <input type="email" id="email" placeholder="البريد الإلكتروني">
+        <input type="password" id="password" placeholder="كلمة المرور">
+        <button onclick="login()">دخول</button>
+        <button onclick="signup()" style="background-color: #333; color: #00dfc4;">إنشاء حساب جديد</button>
+        <p id="auth-error" style="color: #ff5252; text-align: center;"></p>
+    </div>
+
+    <!-- شاشة الدردشة الرئيسية -->
+    <div id="chat-container">
+        <div id="messages"></div>
+        <div class="input-area">
+            <input type="text" id="messageInput" placeholder="اكتب رسالة...">
+            <button onclick="sendMessage()">إرسال</button>
+        </div>
+    </div>
+
+    <!-- جافاسكريبت وربط Firebase -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // إعدادات مشروعك المطابقة للوحة التحكم
+        const firebaseConfig = {
+            apiKey: "AIzaSyDJ4-jobH_OogNtHoNOSJXoL-5n1tO-...",
+            authDomain: "dark-chat-2026.firebaseapp.com",
+            projectId: "dark-chat-2026",
+            storageBucket: "dark-chat-2026.appspot.com",
+            messagingSenderId: "695071251178",
+            appId: "1:695071251178:web:281603c084daeeaa69...",
+            measurementId: "G-X0ZK1ELB3J"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        window.signup = function() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            createUserWithEmailAndPassword(auth, email, password)
+                .catch(error => document.getElementById('auth-error').innerText = error.message);
+        }
+
+        window.login = function() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            signInWithEmailAndPassword(auth, email, password)
+                .catch(error => document.getElementById('auth-error').innerText = error.message);
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('auth-container').style.display = 'none';
+                document.getElementById('chat-container').style.display = 'flex';
+                loadMessages();
+            } else {
+                document.getElementById('auth-container').style.display = 'flex';
+                document.getElementById('chat-container').style.display = 'none';
+            }
+        });
+
+        window.sendMessage = function() {
+            const text = document.getElementById('messageInput').value;
+            if (!text.trim()) return;
+            addDoc(collection(db, "messages"), {
+                text: text,
+                sender: auth.currentUser.email,
+                timestamp: serverTimestamp()
+            });
+            document.getElementById('messageInput').value = '';
+        }
+
+        function loadMessages() {
+            const q = query(collection(db, "messages"), orderBy("timestamp"));
+            onSnapshot(q, (snapshot) => {
+                const messagesDiv = document.getElementById('messages');
+                messagesDiv.innerHTML = '';
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const msgDiv = document.createElement('div');
+                    msgDiv.className = `message ${data.sender === auth.currentUser.email ? 'my-message' : 'other-message'}`;
+                    msgDiv.innerText = `${data.sender}: ${data.text}`;
+                    messagesDiv.appendChild(msgDiv);
+                });
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            });
+        }
+    </script>
+</body>
+</html>
